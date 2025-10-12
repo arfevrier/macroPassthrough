@@ -1,4 +1,14 @@
-# Prerequisites
+# Build directory
+**/build/
+sdkconfig*
+!sdkconfig.defaults
+managed_components
+.vscode
+components
+usb-input-tinyusb/components/tinyusb
+usb-output/main/config_custom.h
+
+ Prerequisites
 *.d
 
 # Object files

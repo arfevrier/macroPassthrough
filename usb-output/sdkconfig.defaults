@@ -1,0 +1,13 @@
+# This file was generated using idf.py save-defconfig. It can be edited manually.
+# Espressif IoT Development Framework (ESP-IDF) Project Minimal Configuration
+#
+
+# Force QIO flash for maximum performance
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+
+# Increase TinyUSB stack priority and force CPU1
+CONFIG_TINYUSB_TASK_PRIORITY=23
+CONFIG_TINYUSB_TASK_AFFINITY_CPU1=y
+
+# Number of HID peripherals:
+CONFIG_TINYUSB_HID_COUNT=1

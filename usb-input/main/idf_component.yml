@@ -1,0 +1,3 @@
+## IDF Component Manager Manifest File
+dependencies:
+  usb_host_hid: "^1.0.1"

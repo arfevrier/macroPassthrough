@@ -1,0 +1,9 @@
+# This file was generated using idf.py save-defconfig. It can be edited manually.
+# Espressif IoT Development Framework (ESP-IDF) Project Minimal Configuration
+#
+
+# (From USB template)
+CONFIG_USB_HOST_HUBS_SUPPORTED=y
+
+# Force QIO flash for maximum performance
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
