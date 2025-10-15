@@ -12,9 +12,16 @@
 #define GPIO_SCLK2           36
 #define GPIO_CS2             35
 
+typedef union {
+    hid_keyboard_report_t keyboard;
+    hid_mouse_report_t mouse;
+} hid_report_t;
 typedef struct {
     uint8_t header;
-    hid_keyboard_report_t key_event;
+    hid_report_t event;
+} hid_transmit_t;
+typedef struct {
+    hid_transmit_t hid;
     uint16_t crc;
 } spi_hid_transmit_t;
 

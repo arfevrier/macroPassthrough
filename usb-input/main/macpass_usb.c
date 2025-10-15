@@ -28,17 +28,28 @@ void hid_host_interface_callback(hid_host_device_handle_t hid_device_handle, con
     switch (event) {
         case HID_HOST_INTERFACE_EVENT_INPUT_REPORT:
             ESP_ERROR_CHECK(hid_host_device_get_raw_input_report_data(hid_device_handle, data, sizeof(data), &data_length));
-            if (data_length == sizeof(hid_keyboard_report_t)){
-                #if DEBUG_LOG
-                hid_keyboard_report_t keyboard_report = *((hid_keyboard_report_t*)data);
-                if (keycode_contains_key(keyboard_report, HID_KEY_CAPS_LOCK)){
-                    report_time = esp_timer_get_time();
+            #if DEBUG_LOG
+            ESP_LOGI(LOG_TITLE, "HID Report subclass: %d, proto %d, size: %d", dev_params.sub_class, dev_params.proto, data_length);
+            #endif
+
+            // Manage different type of report
+            #if DEBUG_LOG
+            if (data_length==0) break;
+            #endif
+            if (HID_SUBCLASS_BOOT_INTERFACE == dev_params.sub_class) {
+                // Keyboard report
+                if (HID_PROTOCOL_KEYBOARD == dev_params.proto) {
+                    #if DEBUG_LOG
+                    if (keycode_contains_key(*((hid_keyboard_report_t*)data), HID_KEY_CAPS_LOCK)){
+                        report_time = esp_timer_get_time();
+                    }
+                    #endif
+                    spi_send_master_hid_sender(HEADER_HID_KEYBOARD_TRANSMISSION, (hid_report_t*)data);
+                // Mouse report
+                } else if (HID_PROTOCOL_MOUSE == dev_params.proto) {
+                    spi_send_master_hid_sender(HEADER_HID_MOUSE_TRANSMISSION, (hid_report_t*)data);
                 }
-                #endif
-                spi_send_master_hid_sender((hid_keyboard_report_t*)data);
-            } else {
-                ESP_LOGI(LOG_TITLE, "HID Report size invalid: %d != %d", data_length, sizeof(hid_keyboard_report_t));
-            };
+            }
             break;
         case HID_HOST_INTERFACE_EVENT_DISCONNECTED:
             ESP_LOGI(LOG_TITLE, "HID Device, protocol '%s' DISCONNECTED", hid_proto_name_str[dev_params.proto]);
@@ -67,6 +78,15 @@ void hid_host_device_event(hid_host_device_handle_t hid_device_handle, const hid
     switch (event) {
     case HID_HOST_DRIVER_EVENT_CONNECTED:
         ESP_LOGI(LOG_TITLE, "HID Device, protocol '%s' CONNECTED", hid_proto_name_str[dev_params.proto]);
+        
+        // ESP32-S3 only have few USB handle available.
+        //  we need to skip NONE peripheral to connect in order
+        //  to works with USB hub. Because gaming Keyboard/Mouse 
+        //  can have 4-5 HID device per peripheral.
+        if(dev_params.proto == 0 || dev_params.proto > 2){
+            ESP_LOGI(LOG_TITLE, "HID Device, skipped");
+            break;
+        }
 
         const hid_host_device_config_t dev_config = {
             .callback = hid_host_interface_callback,

@@ -22,9 +22,9 @@ void spi_task_slave_hid_receiver(void *pvParameters){
 
         // Validate the received buffer
         assert(ret == ESP_OK);
-        if (spi_hid_buffer->header != HEADER_HID_TRANSMISSION ||
-            spi_hid_buffer->crc != esp_crc16_le(UINT16_MAX, (void*)&spi_hid_buffer->key_event, sizeof(hid_keyboard_report_t))){
-            ESP_LOGI(pcTaskGetName(NULL), "SPI received transmission invalid with => %x; %x;", spi_hid_buffer->header, spi_hid_buffer->crc);
+        if ((spi_hid_buffer->hid.header != HEADER_HID_KEYBOARD_TRANSMISSION && spi_hid_buffer->hid.header != HEADER_HID_MOUSE_TRANSMISSION) ||
+            spi_hid_buffer->crc != esp_crc16_le(UINT16_MAX, (void*)&spi_hid_buffer->hid.event, sizeof(hid_report_t))){
+            ESP_LOGI(pcTaskGetName(NULL), "SPI received transmission invalid with => %x; %x;", spi_hid_buffer->hid.header, spi_hid_buffer->crc);
 
             // Where are not expecting an invalid SPI transmission.
             // But this happens when the other device is turned off.
@@ -35,16 +35,20 @@ void spi_task_slave_hid_receiver(void *pvParameters){
             continue;
         }
         #if DEBUG_LOG
-        ESP_LOGI(pcTaskGetName(NULL), "SPI received transmission of type => %x", spi_hid_buffer->header);
+        ESP_LOGI(pcTaskGetName(NULL), "SPI received transmission of type => %x", spi_hid_buffer->hid.header);
         #endif
 
-        // Process keyboard report
-        //// Pre-hook keyboard USB transmission
-        macro_prehook_transmission(&spi_hid_buffer->key_event);
-        //// Add to queue to be report to USB device
-        hid_add_keyboard_report(spi_hid_buffer->key_event);
-        //// Post-hook keyboard USB transmission
-        macro_posthook_transmission(&spi_hid_buffer->key_event);
+        if (spi_hid_buffer->hid.header == HEADER_HID_KEYBOARD_TRANSMISSION){
+            // Process keyboard report
+            //// Pre-hook keyboard USB transmission
+            macro_prehook_transmission(&spi_hid_buffer->hid.event.keyboard);
+            //// Add to queue to be report to USB device
+            hid_add_report(spi_hid_buffer->hid);
+            //// Post-hook keyboard USB transmission
+            macro_posthook_transmission(&spi_hid_buffer->hid.event.keyboard);
+        } else if (spi_hid_buffer->hid.header == HEADER_HID_MOUSE_TRANSMISSION){
+            hid_add_report(spi_hid_buffer->hid);
+        }
     }
 }
 

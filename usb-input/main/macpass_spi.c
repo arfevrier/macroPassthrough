@@ -102,7 +102,7 @@ void spi_task_slave_pc_receiver(void *pvParameters){
             continue;
         }
         #if DEBUG_LOG
-        ESP_LOGI(pcTaskGetName(NULL), "SPI received transmission of type => %x", spi_hid_buffer->header);
+        ESP_LOGI(pcTaskGetName(NULL), "SPI received transmission of type => %x", spi_hid_buffer->hid.header);
         #endif
 
         // Report to USB HID device the PC output report
@@ -110,11 +110,11 @@ void spi_task_slave_pc_receiver(void *pvParameters){
     }
 }
 
-void spi_send_master_hid_sender(hid_keyboard_report_t* report){
+void spi_send_master_hid_sender(uint8_t type, hid_report_t* report){
     // Set buffer information
-    spi_hid_buffer->header = HEADER_HID_TRANSMISSION;
-    memcpy((void*)&spi_hid_buffer->key_event, (void*)report, sizeof(hid_keyboard_report_t));
-    spi_hid_buffer->crc = esp_crc16_le(UINT16_MAX, (void*)&spi_hid_buffer->key_event, sizeof(hid_keyboard_report_t));
+    spi_hid_buffer->hid.header = type;
+    memcpy((void*)&spi_hid_buffer->hid.event, (void*)report, sizeof(hid_report_t));
+    spi_hid_buffer->crc = esp_crc16_le(UINT16_MAX, (void*)&spi_hid_buffer->hid.event, sizeof(hid_report_t));
 
     // Prepare transmission
     spi_transaction_hid_sender.length = sizeof(spi_hid_transmit_t) * 8;

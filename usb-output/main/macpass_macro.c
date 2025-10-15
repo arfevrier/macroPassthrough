@@ -84,7 +84,10 @@ void macro_sequence_callback(void* arg) {
     }
 
     // Send the modified report to the HID task for USB transmission
-    hid_add_keyboard_report(copy_report);
+    static hid_transmit_t transmit_report;
+    transmit_report.header = HEADER_HID_KEYBOARD_TRANSMISSION;
+    transmit_report.event.keyboard = copy_report;
+    hid_add_report(transmit_report);
 
     // Schedule next sequence key with esp_timer
     // Increase the sequence position

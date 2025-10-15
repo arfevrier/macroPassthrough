@@ -20,7 +20,10 @@ typedef struct {
 
 typedef struct {
     uint8_t header;
-    hid_keyboard_report_t key_event;
+    hid_report_t event;
+} hid_transmit_t;
+typedef struct {
+    hid_transmit_t hid;
     uint16_t crc;
 } spi_hid_transmit_t;
 
@@ -28,4 +31,4 @@ void spi_task_slave_pc_receiver(void *pvParameters);
 void spi_init_master_hid_sender();
 void spi_init_slave_pc_receiver();
 void spi_uninstall();
-void spi_send_master_hid_sender(hid_keyboard_report_t* report);
+void spi_send_master_hid_sender(uint8_t type, hid_report_t* report);

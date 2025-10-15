@@ -12,9 +12,9 @@
 #include "esp_timer.h"
 
 // Local dependencies
-#include "macpass_hid.h"
 #include "macpass_macro.h"
 #include "macpass_spi.h"
+#include "macpass_hid.h"
 #include "macpass_usb.h"
 #include "macpass_tool.h"
 
@@ -30,7 +30,8 @@
 
 #define TUSB_DESC_TOTAL_LEN      (TUD_CONFIG_DESC_LEN + CFG_TUD_HID * TUD_HID_DESC_LEN)
 static const uint8_t hid_report_descriptor[] = {
-    TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(HID_ITF_PROTOCOL_KEYBOARD))
+    TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(HID_ITF_PROTOCOL_KEYBOARD)),
+    TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(HID_ITF_PROTOCOL_MOUSE))
 };
 static const char* hid_string_descriptor[5] = {
     (char[]){0x09, 0x04},     // 0: is supported language is English (0x0409)

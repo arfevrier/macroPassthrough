@@ -5,12 +5,13 @@ void app_main(void)
 {
     ESP_LOGI(LOG_TITLE, "Starting -MacroPassthrough- application");
 
-    // Initialize TinyUSB
-    tud_user_initialization();
-
     // Initialize SPI
     spi_init_slave_hid_receiver();
     spi_init_master_pc_sender();
+
+    // Initialize TinyUSB
+    vTaskDelay(pdMS_TO_TICKS(1000)); // At sleep in case of computer boot
+    tud_user_initialization();
 
     // Initialize hid multiplexer worker (aggregate keyboard report & macro report)
     hid_init_multiplexer();
