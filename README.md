@@ -30,9 +30,6 @@ This project is inspired by the following examples:
 - **usb-input/**  
   ESP32 firmware that acts as a USB host, receives HID reports from a keyboard, and forwards them over SPI.
 
-- **usb-input-tinyusb/** *(⚠️ work in progress)*  
-  Alternative input firmware using the TinyUSB stack for USB host functionality. Use this if you prefer TinyUSB over the ESP-IDF USB host stack.
-
 - **usb-output/**  
   ESP32 firmware that acts as a USB device, receives HID/macro reports over SPI, aggregates them, and presents as a USB HID keyboard to the PC. Supports macro injection.
 

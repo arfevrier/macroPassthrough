@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "tinyusb.h"
+#include "tinyusb_default_config.h"
 #include "class/hid/hid_device.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
@@ -46,20 +47,6 @@ static const uint8_t hid_configuration_descriptor[] = {
 
     // Interface number, string index, boot protocol, report descriptor len, EP In address, size & polling interval
     TUD_HID_DESCRIPTOR(0, 4, true, sizeof(hid_report_descriptor), 0x81, 16, 1),
-};
-static const tinyusb_config_t tusb_cfg = {
-    .device_descriptor = NULL,
-    .string_descriptor = hid_string_descriptor,
-    .string_descriptor_count = sizeof(hid_string_descriptor) / sizeof(hid_string_descriptor[0]),
-    
-    .external_phy = false,
-#if (TUD_OPT_HIGH_SPEED)
-    .fs_configuration_descriptor = hid_configuration_descriptor, // HID configuration descriptor for full-speed and high-speed are the same
-    .hs_configuration_descriptor = hid_configuration_descriptor,
-    .qualifier_descriptor = NULL,
-#else
-    .configuration_descriptor = hid_configuration_descriptor,
-#endif
 };
 
 // ---
