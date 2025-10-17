@@ -19,10 +19,10 @@ void spi_task_slave_hid_receiver(void *pvParameters){
 
         // Wait for the next SPI transmission
         esp_err_t ret = spi_slave_transmit(SPI_HID_RECEIVER, &spi_transaction_hid_receiver, portMAX_DELAY);
-
+        
         // Validate the received buffer
         assert(ret == ESP_OK);
-        if ((spi_hid_buffer->hid.header != HEADER_HID_KEYBOARD_TRANSMISSION && spi_hid_buffer->hid.header != HEADER_HID_MOUSE_TRANSMISSION) ||
+        if ((spi_hid_buffer->hid.header != HEADER_HID_KEYBOARD && spi_hid_buffer->hid.header != HEADER_HID_MOUSE) ||
             spi_hid_buffer->crc != esp_crc16_le(UINT16_MAX, (void*)&spi_hid_buffer->hid.event, sizeof(hid_report_t))){
             ESP_LOGI(pcTaskGetName(NULL), "SPI received transmission invalid with => %x; %x;", spi_hid_buffer->hid.header, spi_hid_buffer->crc);
 
@@ -37,18 +37,15 @@ void spi_task_slave_hid_receiver(void *pvParameters){
         #if DEBUG_LOG
         ESP_LOGI(pcTaskGetName(NULL), "SPI received transmission of type => %x", spi_hid_buffer->hid.header);
         #endif
-
-        if (spi_hid_buffer->hid.header == HEADER_HID_KEYBOARD_TRANSMISSION){
-            // Process keyboard report
-            //// Pre-hook keyboard USB transmission
-            macro_prehook_transmission(&spi_hid_buffer->hid.event.keyboard);
-            //// Add to queue to be report to USB device
-            hid_add_report(spi_hid_buffer->hid);
-            //// Post-hook keyboard USB transmission
-            macro_posthook_transmission(&spi_hid_buffer->hid.event.keyboard);
-        } else if (spi_hid_buffer->hid.header == HEADER_HID_MOUSE_TRANSMISSION){
-            hid_add_report(spi_hid_buffer->hid);
-        }
+        
+        
+        // Process HID report
+        //// Pre-hook keyboard USB transmission
+        if (macro_prehook_transmission(&spi_hid_buffer->hid)) continue;
+        //// Add to queue to be report to USB device
+        hid_add_report(spi_hid_buffer->hid);
+        //// Post-hook keyboard USB transmission
+        macro_posthook_transmission(&spi_hid_buffer->hid);
     }
 }
 
@@ -82,8 +79,8 @@ void spi_init_slave_hid_receiver(){
 
     memset(&spi_transaction_hid_receiver, 0, sizeof(spi_slave_transaction_t));
 
-    // Create the consumer task (priority = 23)
-    xTaskCreatePinnedToCore(spi_task_slave_hid_receiver, "SPI HID Receiver", 4096, NULL, 23, NULL, 0);
+    // Create the consumer task (priority = 22)
+    xTaskCreatePinnedToCore(spi_task_slave_hid_receiver, "SPI HID Receiver", 4096, NULL, 22, NULL, 0);
 }
 
 // Init SPI host for PC report

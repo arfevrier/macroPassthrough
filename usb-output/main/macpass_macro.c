@@ -1,7 +1,8 @@
 // Import global project config
 #include "config.h"
 
-hid_keyboard_report_t last_report[2];
+hid_keyboard_report_t last_keyboard_report[HISTORY_SIZE];
+hid_mouse_report_t last_mouse_report;
 group_sequence_t group_sequence;
 
 void macro_init(){
@@ -23,71 +24,120 @@ void macro_init(){
     }
 }
 
-void macro_prehook_transmission(hid_keyboard_report_t* report){
+// Prehook for macro HID transmission. Return true to end transmission chain. Default to false.
+bool macro_prehook_transmission(hid_transmit_t* report){
     
-    // TODO -- User modification
-    if (keycode_contains_key(*report, HID_KEY_A) && keycode_contains_key(*report, HID_KEY_D)){
-        if (keycode_contains_key(last_report[0], HID_KEY_A)){
-            remove_keycode(report, HID_KEY_A);
-        } else if (keycode_contains_key(last_report[0], HID_KEY_D)){
-            remove_keycode(report, HID_KEY_D);
+    // --- START USER CUSTOM MACRO
+    if (report->header == HEADER_HID_KEYBOARD){
+        if (keycode_contains_key(report->event.keyboard, HID_KEY_A) && keycode_contains_key(report->event.keyboard, HID_KEY_D)){
+            if (keycode_contains_key(last_keyboard_report[0], HID_KEY_A)){
+                remove_keycode(&report->event.keyboard, HID_KEY_A);
+            } else if (keycode_contains_key(last_keyboard_report[0], HID_KEY_D)){
+                remove_keycode(&report->event.keyboard, HID_KEY_D);
+            }
         }
     }
-    // -- END
-
+    // --- END
+     
     // Example: Remove a KEY
     // remove_keycode(report, HID_KEY_C);
+
+    // Exemple: Skip all A key
+    // if (keycode_contains_key(report->event.keyboard, HID_KEY_A) return true;
+
+    return false;
 }
 
-void macro_posthook_transmission(hid_keyboard_report_t* report){
-    // Update last report transmission, like this all macro are added to real keys press by user
-    last_report[1] = last_report[0];
-    last_report[0] = *report;
+void macro_posthook_transmission(hid_transmit_t* report){
 
-    // Manage sequence start:
-    for (int i = 0; i < MAX_KEY_MODIFICATION_SEQUENCE; i++){
-        key_modification_sequence_t* sequence = &group_sequence.list[i];
-        // Ignore empty sequence
-        if (sequence->size == 0) continue;
-        // If a press key is defined for sequence
-        if (sequence->detect_key != 0 && keycode_contains_key(last_report[0], sequence->detect_key)){
-            esp_timer_start_once(sequence->timer, sequence->list[sequence->pos].duration);
+    #if DEBUG_LOG
+    ESP_LOGI(pcTaskGetName(NULL), "posthook(): Start function");
+    if (report->header == HEADER_HID_KEYBOARD) {
+        print_keyboard_report(pcTaskGetName(NULL), report->event.keyboard);
+    } else if (report->header == HEADER_HID_MOUSE) {
+        print_mouse_report(pcTaskGetName(NULL), report->event.mouse);
+    }
+    #endif
+
+    // Case n°1: Keyboard HID
+    if (report->header == HEADER_HID_KEYBOARD){
+        // Update last report transmission, like this all macro are added to real keys press by user
+        last_keyboard_report[1] = last_keyboard_report[0];
+        last_keyboard_report[0] = report->event.keyboard;
+
+        // --- START USER CUSTOM MACRO
+        // --- END
+
+        // Manage sequence start:
+        for (int i = 0; i < MAX_KEY_MODIFICATION_SEQUENCE; i++){
+            key_modification_sequence_t* sequence = &group_sequence.list[i];
+            // Ignore empty sequence
+            if (sequence->size == 0) break;
+            // If a press key is defined for sequence
+            if (sequence->event_press.header == HEADER_HID_KEYBOARD && keyboard_report_contains_event(last_keyboard_report[0], sequence->event_press.event.keyboard)){
+                #if DEBUG_LOG
+                ESP_LOGI(pcTaskGetName(NULL), "posthook(): Starting keyboard press macro: %s", sequence->timer_args.name);
+                #endif
+                esp_timer_start_once(sequence->timer, sequence->list[sequence->pos].duration);
+            }
+            // If a unpress key is defined for sequence
+            if (sequence->event_release.header == HEADER_HID_KEYBOARD && keyboard_report_contains_event(last_keyboard_report[1], sequence->event_release.event.keyboard) && !keyboard_report_contains_event(last_keyboard_report[0], sequence->event_release.event.keyboard)){
+                #if DEBUG_LOG
+                ESP_LOGI(pcTaskGetName(NULL), "posthook(): Starting keyboard release macro: %s", sequence->timer_args.name);
+                #endif
+                esp_timer_start_once(sequence->timer, sequence->list[sequence->pos].duration);
+            }
         }
-        // If a unpress key is defined for sequence
-        if (sequence->detect_unkey != 0 && keycode_contains_key(last_report[1], sequence->detect_unkey) && !keycode_contains_key(last_report[0], sequence->detect_unkey)){
-            esp_timer_start_once(sequence->timer, sequence->list[sequence->pos].duration);
-        }
+    // Case n°2: Mouse HID
+    } else if (report->header == HEADER_HID_MOUSE){
+        // Update last report transmission, like this all macro are added to real keys press by user
+        last_mouse_report = report->event.mouse;
+
+        // --- START USER CUSTOM MACRO
+        // --- END
     }
 }
 
 void macro_sequence_callback(void* arg) {
     // Get the key sequence from arguments
     key_modification_sequence_t* key_seq = (key_modification_sequence_t*) arg;
+    hid_transmit_t macro_event = key_seq->list[key_seq->pos].event;
     // Copy last humain HID report...
-    hid_keyboard_report_t copy_report = last_report[0];
+    hid_transmit_t copy_report;
+    if (macro_event.header == HEADER_HID_KEYBOARD){
+        copy_report.header = HEADER_HID_KEYBOARD;
+        copy_report.event.keyboard = last_keyboard_report[0];
+    } else if (macro_event.header == HEADER_HID_MOUSE) {
+        copy_report.header = HEADER_HID_MOUSE;
+        copy_report.event.mouse = last_mouse_report;
+        copy_report.event.mouse.x = 0; copy_report.event.mouse.y = 0; copy_report.event.mouse.wheel = 0;
+    } else {
+        #if DEBUG_LOG
+        ESP_LOGI(pcTaskGetName(NULL), "macro_sequence(): Invalid macro sequence (header: %d): %s", macro_event.header, key_seq->timer_args.name);
+        #endif
+        return;
+    }
 
-    // ... and add the custom key to the last report.
-    // (like this we keep humain keyboard working during a sequence)
-    add_keycode(&copy_report, key_seq->list[key_seq->pos].key);
-
-    // Inform of the key sequence event
-    key_seq->previous_key = key_seq->list[key_seq->pos].key;
-    // Add all current keys sequences: like this all sequences can run in parallel
+    // ... and add the custom key to the sequence previous key.
+    key_seq->previous_key = macro_event;
+    // Previous key of all sequence are added to copy report to send: all sequences can run in parallel
     for (int i = 0; i < MAX_KEY_MODIFICATION_SEQUENCE; i++){
         key_modification_sequence_t* sequence = &group_sequence.list[i];
         // Ignore empty sequence
         if (sequence->size == 0) continue;
-        // Skip sequence containing current key (already added)
-        if (sequence->previous_key == key_seq->list[key_seq->pos].key) continue;
+        // Skip sequence with not same HID type
+        if (sequence->previous_key.header != macro_event.header) continue;
         // Add the keycode to report
-        add_keycode(&copy_report, sequence->previous_key);
+        add_event_to_report(&copy_report, sequence->previous_key);
     }
+    // In case of mouse, add mouvement to report
+    if (macro_event.header == HEADER_HID_MOUSE) set_mouse_movement_to_report(&copy_report.event.mouse, macro_event.event.mouse);
 
     // Send the modified report to the HID task for USB transmission
-    static hid_transmit_t transmit_report;
-    transmit_report.header = HEADER_HID_KEYBOARD_TRANSMISSION;
-    transmit_report.event.keyboard = copy_report;
-    hid_add_report(transmit_report);
+    #if DEBUG_LOG
+    ESP_LOGI(pcTaskGetName(NULL), "macro_sequence(): Send report from: %s", key_seq->timer_args.name);
+    #endif
+    hid_add_report(copy_report);
 
     // Schedule next sequence key with esp_timer
     // Increase the sequence position
@@ -98,9 +148,13 @@ void macro_sequence_callback(void* arg) {
     } else {
         // if end of sequence, reset
         key_seq->pos = 0;
+        key_seq->previous_key.header = 0;
         //  but for loop sequence, continue if key still pressed
-        if (key_seq->loop && keycode_contains_key(last_report[0], key_seq->detect_key)){
-            esp_timer_start_once(key_seq->timer, key_seq->list[key_seq->pos].duration);
+        if (key_seq->loop && (
+                (key_seq->event_press.header == HEADER_HID_KEYBOARD && keyboard_report_contains_event(last_keyboard_report[0], key_seq->event_press.event.keyboard)) ||
+                (key_seq->event_press.header == HEADER_HID_MOUSE && mouse_report_contains_event(last_mouse_report, key_seq->event_press.event.mouse))
+            )){
+            esp_timer_start_once(key_seq->timer, key_seq->list[key_seq->pos].duration);   
         }
     }
 }

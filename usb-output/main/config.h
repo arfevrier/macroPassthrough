@@ -13,11 +13,11 @@
 #include "esp_timer.h"
 
 // Local dependencies
-#include "macpass_macro.h"
 #include "macpass_spi.h"
 #include "macpass_hid.h"
 #include "macpass_usb.h"
 #include "macpass_tool.h"
+#include "macpass_macro.h"
 
 // Define title for logging: for UART debug purposes
 #define LOG_TITLE "MacroPassthrough"
@@ -34,7 +34,7 @@ static const uint8_t hid_report_descriptor[] = {
     TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(HID_ITF_PROTOCOL_KEYBOARD)),
     TUD_HID_REPORT_DESC_MOUSE(HID_REPORT_ID(HID_ITF_PROTOCOL_MOUSE))
 };
-static const char* hid_string_descriptor[5] = {
+static const char* hid_string_descriptor[5] __unused = {
     (char[]){0x09, 0x04},     // 0: is supported language is English (0x0409)
     "TinyUSB",                // 1: Manufacturer
     "TinyUSB Device",         // 2: Product
@@ -57,38 +57,70 @@ static const group_sequence_t macro_sequence = {
     .list = {
         {
             .list = {
-                {1000*1000, 0},
-                {1000*1000, HID_KEY_KEYPAD_2},
-                {0, HID_KEY_KEYPAD_6},
-                {10*1000, 0},
-                {1000*1000, HID_KEY_KEYPAD_2},
-                {10*1000, 0},
+                {1000*1000, EMPTY_KEYBOARD},
+                {1000*1000, ONE_KEYBOARD_KEY(HID_KEY_KEYPAD_2)},
+                {0, ONE_KEYBOARD_KEY(HID_KEY_KEYPAD_6)},
+                {10*1000, EMPTY_KEYBOARD},
+                {1000*1000, ONE_KEYBOARD_KEY(HID_KEY_KEYPAD_2)},
+                {10*1000, EMPTY_KEYBOARD},
             },
             .size = 6,
-            .detect_key = HID_KEY_KEYPAD_3,
+            .event_press = ONE_KEYBOARD_KEY(HID_KEY_KEYPAD_3),
         },
         {
             .list = {
-                {0, 0},
-                {1000*1000, HID_KEY_A},
-                {0, HID_KEY_B},
-                {2000*1000, 0},
-                {1000*1000, HID_KEY_A},
-                {10*1000, 0},
+                {0, EMPTY_KEYBOARD},
+                {1000*1000, ONE_KEYBOARD_KEY(HID_KEY_A)},
+                {0, ONE_KEYBOARD_KEY(HID_KEY_B)},
+                {2000*1000, EMPTY_KEYBOARD},
+                {1000*1000, ONE_KEYBOARD_KEY(HID_KEY_A)},
+                {10*1000, EMPTY_KEYBOARD},
             },
             .size = 6,
-            .detect_key = HID_KEY_KEYPAD_3,
+            .event_press = ONE_KEYBOARD_KEY(HID_KEY_KEYPAD_3),
         },
         {
             .list = {
-                {0, HID_KEY_A},
-                {150*1000, 0},
-                {0, HID_KEY_D},
-                {150*1000, 0},
+                {0, ONE_KEYBOARD_KEY(HID_KEY_A)},
+                {150*1000, EMPTY_KEYBOARD},
+                {0, ONE_KEYBOARD_KEY(HID_KEY_D)},
+                {150*1000, EMPTY_KEYBOARD},
             },
             .size = 4,
             .loop = true,
-            .detect_key = HID_KEY_X,
+            .event_press = ONE_KEYBOARD_KEY(HID_KEY_X),
+        },
+        {
+            .list = {
+                {3*1000, MOUSE_MOUVEMENT(-2, 0)},
+            },
+            .size = 1,
+            .loop = true,
+            .event_press = ONE_KEYBOARD_KEY(HID_KEY_ARROW_LEFT),
+        },
+        {
+            .list = {
+                {3*1000, MOUSE_MOUVEMENT(2, 0)},
+            },
+            .size = 1,
+            .loop = true,
+            .event_press = ONE_KEYBOARD_KEY(HID_KEY_ARROW_RIGHT),
+        },
+        {
+            .list = {
+                {3*1000, MOUSE_MOUVEMENT(0, -2)},
+            },
+            .size = 1,
+            .loop = true,
+            .event_press = ONE_KEYBOARD_KEY(HID_KEY_ARROW_UP),
+        },
+        {
+            .list = {
+                {3*1000, MOUSE_MOUVEMENT(0, 2)},
+            },
+            .size = 1,
+            .loop = true,
+            .event_press = ONE_KEYBOARD_KEY(HID_KEY_ARROW_DOWN),
         },
     }
 };

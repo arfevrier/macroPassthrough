@@ -9,16 +9,16 @@ void app_main(void)
     spi_init_slave_hid_receiver();
     spi_init_master_pc_sender();
 
-    // Initialize TinyUSB
-    vTaskDelay(pdMS_TO_TICKS(1000)); // At sleep in case of computer boot
-    tud_user_initialization();
-
     // Initialize hid multiplexer worker (aggregate keyboard report & macro report)
     hid_init_multiplexer();
 
     // Initialize macro configuration
     macro_init();
-    
+
+    // Initialize TinyUSB
+    vTaskDelay(pdMS_TO_TICKS(1000)); // At sleep in case of computer boot
+    tud_user_initialization();
+
     // Leave main() in background
     while (true) {
         vTaskDelay(portMAX_DELAY);

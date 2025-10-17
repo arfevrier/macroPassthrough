@@ -32,23 +32,25 @@ void hid_task_multiplexer(void *pvParameters) {
     hid_transmit_t queue_received;
     if (xQueueReceive(global_hid_report_queue, &queue_received, portMAX_DELAY) == pdTRUE) {
       ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait until timer release the lock
-      esp_timer_start_once(timer, 1000-100); // 1ms timeout to avoid blocking if USB is not ready
+      esp_timer_start_once(timer, 1000); // 1ms timeout to avoid blocking if USB is not ready
 
       // Display in console log
       #if DEBUG_LOG
-      if (queue_received.header == HEADER_HID_KEYBOARD_TRANSMISSION){
+      if (queue_received.header == HEADER_HID_KEYBOARD){
         print_keyboard_report(pcTaskGetName(NULL), queue_received.event.keyboard);
-        ESP_LOGI(pcTaskGetName(NULL), "tud status: %d", tud_ready());
+      } else if (queue_received.header == HEADER_HID_MOUSE) {
+        print_mouse_report(pcTaskGetName(NULL), queue_received.event.mouse);
       }
+      ESP_LOGI(pcTaskGetName(NULL), "tud status: %d", tud_ready());
       #endif
       
       // But USB peripheral must still be ready. If the USB device is disconnected, tud_ready() will return false.
       if (!tud_ready()) continue;
       // If the report is not sent, requeue-it.
       static bool status;
-      if (queue_received.header == HEADER_HID_KEYBOARD_TRANSMISSION) {
+      if (queue_received.header == HEADER_HID_KEYBOARD) {
         status = tud_hid_keyboard_report(HID_ITF_PROTOCOL_KEYBOARD, queue_received.event.keyboard.modifier, queue_received.event.keyboard.keycode);
-      } else if (queue_received.header == HEADER_HID_MOUSE_TRANSMISSION) {
+      } else if (queue_received.header == HEADER_HID_MOUSE) {
         status = tud_hid_mouse_report(HID_ITF_PROTOCOL_MOUSE, queue_received.event.mouse.buttons, queue_received.event.mouse.x, queue_received.event.mouse.y, queue_received.event.mouse.wheel, queue_received.event.mouse.pan);
       }
       if (status == false && tud_ready()) {
@@ -64,8 +66,8 @@ void hid_init_multiplexer(){
     // Create the queue to hold HID reports
     global_hid_report_queue = xQueueCreate(10, sizeof(hid_transmit_t));
 
-    // Create the consumer task (priority = 23)
-    xTaskCreatePinnedToCore(hid_task_multiplexer, "HID Report Multiplexer", 4096, NULL, 23, NULL, 0);
+    // Create the consumer task (priority = 22)
+    xTaskCreatePinnedToCore(hid_task_multiplexer, "HID Report Multiplexer", 4096, NULL, 22, NULL, 0);
 }
 
 void hid_add_report(hid_transmit_t report){
