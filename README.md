@@ -7,7 +7,8 @@ An ESP32 USB HID Passthrough for Keyboard and Mouse. Allowing macro injection.
 - ⏰: With a focus on low latency. You can expect sub-millisecond latency added by the passthrough.
 - ⌨️ / 🖱️: Compatible for peripheral up to 1000Hz of pooling rate.
 - 🕹️: Expected to works fine for gaming.
-- 🔌: You can connect a USB hub, allowing you to connect both the keyboard and mouse at the same time.
+- 🔌: You can connect a USB hub, allowing you to connect and intercept both the keyboard and mouse at the same time.
+- 💿: The goal is to have a hardware equivalent of macro software like `AutoHotKey`.
 
 ## Overview
 
@@ -100,6 +101,7 @@ flowchart LR
 ![demo-alphabet](https://github.com/user-attachments/assets/8a6782db-fcbe-4851-a37d-9ac02eee587f)
 
 2. The sequence can also be used in video games (here CS2) to perform automatic aim control. *(Inspired by [NoRecoil-CS2](https://github.com/McDaived/NoRecoil-CS2))*
+
 ![cs2-recoil](https://github.com/user-attachments/assets/b78ac7ab-d809-439e-b787-6fcebbc28b8c)
 
 ---
