@@ -55,8 +55,8 @@ flowchart LR
     ESPIN -- SPI1: HID Data --> ESPOUT
     ESPOUT -- SPI2: PC LED --> ESPIN
     ESPOUT -- USB --> PC
-    USBPWR1[USB Power] -.-> ESPIN
-    USBPWR2[USB Power] -.-> ESPOUT
+    USBPWR1[USB Power / Debug UART] -.-> ESPIN
+    USBPWR2[USB Power / Debug UART] -.-> ESPOUT
 
     %% Node classes
     classDef keyboard fill:#f9f,stroke:#333,stroke-width:2px;
