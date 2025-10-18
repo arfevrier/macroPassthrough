@@ -95,6 +95,20 @@ void macro_posthook_transmission(hid_transmit_t* report){
 
         // --- START USER CUSTOM MACRO
         // --- END
+
+        // Manage sequence start:
+        for (int i = 0; i < MAX_KEY_MODIFICATION_SEQUENCE; i++){
+            key_modification_sequence_t* sequence = &group_sequence.list[i];
+            // Ignore empty sequence
+            if (sequence->size == 0) break;
+            // If a press key is defined for sequence
+            if (sequence->event_press.header == HEADER_HID_MOUSE && mouse_report_contains_event(last_mouse_report, sequence->event_press.event.mouse)){
+                #if DEBUG_LOG
+                ESP_LOGI(pcTaskGetName(NULL), "posthook(): Starting mouse press macro: %s", sequence->timer_args.name);
+                #endif
+                esp_timer_start_once(sequence->timer, sequence->list[sequence->pos].duration);
+            }
+        }
     }
 }
 
@@ -113,7 +127,7 @@ void macro_sequence_callback(void* arg) {
         copy_report.event.mouse.x = 0; copy_report.event.mouse.y = 0; copy_report.event.mouse.wheel = 0;
     } else {
         #if DEBUG_LOG
-        ESP_LOGI(pcTaskGetName(NULL), "macro_sequence(): Invalid macro sequence (header: %d): %s", macro_event.header, key_seq->timer_args.name);
+        ESP_LOGI(pcTaskGetName(NULL), "macro_sequence(): Invalid macro sequence n°%d (header: %d): %s", key_seq->pos, macro_event.header, key_seq->timer_args.name);
         #endif
         return;
     }
@@ -142,19 +156,27 @@ void macro_sequence_callback(void* arg) {
     // Schedule next sequence key with esp_timer
     // Increase the sequence position
     key_seq->pos++;
-    if (key_seq->pos < key_seq->size){
-        // if not the end of sequence, restart timer with next duration
-        esp_timer_start_once(key_seq->timer, key_seq->list[key_seq->pos].duration);
-    } else {
-        // if end of sequence, reset
+    // if end of sequence, reset
+    if (key_seq->pos >= key_seq->size){
         key_seq->pos = 0;
         key_seq->previous_key.header = 0;
-        //  but for loop sequence, continue if key still pressed
-        if (key_seq->loop && (
-                (key_seq->event_press.header == HEADER_HID_KEYBOARD && keyboard_report_contains_event(last_keyboard_report[0], key_seq->event_press.event.keyboard)) ||
-                (key_seq->event_press.header == HEADER_HID_MOUSE && mouse_report_contains_event(last_mouse_report, key_seq->event_press.event.mouse))
-            )){
-            esp_timer_start_once(key_seq->timer, key_seq->list[key_seq->pos].duration);   
+        if (key_seq->loop){
+            // Ignore end of sequence, try to continue
+        } else {
+            return;
         }
     }
+    // ... else restart timer with next duration
+    // (but in a loop the press key must still be pressed)
+    if (key_seq->loop && (
+         (key_seq->event_press.header == HEADER_HID_KEYBOARD && !keyboard_report_contains_event(last_keyboard_report[0], key_seq->event_press.event.keyboard)) ||
+         (key_seq->event_press.header == HEADER_HID_MOUSE && !mouse_report_contains_event(last_mouse_report, key_seq->event_press.event.mouse))
+        )
+       ){
+        key_seq->pos = 0;
+        key_seq->previous_key.header = 0;
+        return;
+    }  
+    esp_timer_start_once(key_seq->timer, key_seq->list[key_seq->pos].duration);
+    return;
 }

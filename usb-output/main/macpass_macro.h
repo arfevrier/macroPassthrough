@@ -1,7 +1,7 @@
 
 // Define size of sequence structure. Set as lower as possible. Can impact performance.
 #define HISTORY_SIZE 2
-#define MAX_KEY_MODIFICATION_EVENT 25
+#define MAX_KEY_MODIFICATION_EVENT 30
 #define MAX_KEY_MODIFICATION_SEQUENCE 10
 
 typedef struct {
@@ -15,11 +15,11 @@ typedef struct {
     uint8_t size; // Size of the list of event
     hid_transmit_t event_press; // Detect on press 
     hid_transmit_t event_release; // Detect on release
+    bool loop; // Play the sequence on a loop
 
     // --- Computed
     hid_transmit_t previous_key;
     uint8_t pos;
-    bool loop;
     esp_timer_handle_t timer;
     esp_timer_create_args_t timer_args;
 } key_modification_sequence_t;

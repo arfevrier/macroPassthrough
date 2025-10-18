@@ -17,6 +17,12 @@
     .event = {.keyboard = {.keycode = {key}}} \
 } \
 
+#define ONE_MOUSE_KEY(key) \
+{ \
+    .header = HEADER_HID_MOUSE, \
+    .event = {.mouse = {.buttons = key}} \
+} \
+
 #define TWO_KEYBOARD_KEY(key, key2) \
 { \
     .header = HEADER_HID_KEYBOARD, \

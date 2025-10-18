@@ -44,10 +44,10 @@ void hid_host_interface_callback(hid_host_device_handle_t hid_device_handle, con
                         report_time = esp_timer_get_time();
                     }
                     #endif
-                    spi_send_master_hid_sender(HEADER_HID_KEYBOARD_TRANSMISSION, (hid_report_t*)data);
+                    spi_send_master_hid_sender(HEADER_HID_KEYBOARD, (hid_report_t*)data);
                 // Mouse report
                 } else if (HID_PROTOCOL_MOUSE == dev_params.proto) {
-                    spi_send_master_hid_sender(HEADER_HID_MOUSE_TRANSMISSION, (hid_report_t*)data);
+                    spi_send_master_hid_sender(HEADER_HID_MOUSE, (hid_report_t*)data);
                 }
             }
             break;

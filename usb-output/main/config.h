@@ -29,6 +29,10 @@
 // --- TinyUSB descriptors
 // ---
 
+#define CUSTOM_CONFIG 0
+#if CUSTOM_CONFIG
+#include "config_custom.h"
+#else
 #define TUSB_DESC_TOTAL_LEN      (TUD_CONFIG_DESC_LEN + CFG_TUD_HID * TUD_HID_DESC_LEN)
 static const uint8_t hid_report_descriptor[] = {
     TUD_HID_REPORT_DESC_KEYBOARD(HID_REPORT_ID(HID_ITF_PROTOCOL_KEYBOARD)),
@@ -47,6 +51,22 @@ static const uint8_t hid_configuration_descriptor[] = {
 
     // Interface number, string index, boot protocol, report descriptor len, EP In address, size & polling interval
     TUD_HID_DESCRIPTOR(0, 4, true, sizeof(hid_report_descriptor), 0x81, 16, 1),
+};
+static const tusb_desc_device_t espressif_device = {
+    .bLength            = 0x12,
+    .bDescriptorType    = 0x01,
+    .bcdUSB             = 0x200,
+    .bDeviceClass       = 0x00,
+    .bDeviceSubClass    = 0x00,
+    .bDeviceProtocol    = 0x00,
+    .bMaxPacketSize0    = 0x40,
+    .idVendor           = 0x303A,
+    .idProduct          = 0x4004,
+    .bcdDevice          = 0x0100,
+    .iManufacturer      = 0x01,
+    .iProduct           = 0x02,
+    .iSerialNumber      = 0x03,
+    .bNumConfigurations = 0x01
 };
 
 // ---
@@ -122,5 +142,47 @@ static const group_sequence_t macro_sequence = {
             .loop = true,
             .event_press = ONE_KEYBOARD_KEY(HID_KEY_ARROW_DOWN),
         },
+        {
+            .list = {
+                {50*1000, MOUSE_MOUVEMENT(-10, 10)},
+            },
+            .size = 29,
+            .loop = true,
+            .event_press = ONE_MOUSE_KEY(MOUSE_BUTTON_RIGHT),
+        },
+        {
+            .list = {
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_A)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_B)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_C)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_D)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_E)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_F)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_G)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_H)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_I)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_J)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_K)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_L)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_M)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_N)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_O)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_P)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_Q)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_R)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_S)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_T)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_U)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_V)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_W)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_X)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_Y)},
+                {50000, ONE_KEYBOARD_KEY(HID_KEY_Z)},
+                {0, EMPTY_KEYBOARD}
+            },
+            .size = 27,
+            .event_press = ONE_MOUSE_KEY(MOUSE_BUTTON_RIGHT),
+        },
     }
 };
+#endif
