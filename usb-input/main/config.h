@@ -24,7 +24,6 @@
 #include "macpass_hid.h"
 #include "macpass_spi.h"
 #include "macpass_usb.h"
-#include "../../usb-output/main/macpass_tool.h"
 
 // Define title for logging: for UART debug purposes
 #define LOG_TITLE "MacroPassthrough"
