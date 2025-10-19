@@ -78,14 +78,31 @@ void macro_posthook_transmission(hid_transmit_t* report){
                 #if DEBUG_LOG
                 ESP_LOGI(pcTaskGetName(NULL), "posthook(): Starting keyboard press macro: %s", sequence->timer_args.name);
                 #endif
-                esp_timer_start_once(sequence->timer, sequence->list[sequence->pos].duration);
+                reset_sequence(sequence);
+                start_sequence(sequence);
             }
             // If a unpress key is defined for sequence
             if (sequence->event_release.header == HEADER_HID_KEYBOARD && keyboard_report_contains_event(last_keyboard_report[1], sequence->event_release.event.keyboard) && !keyboard_report_contains_event(last_keyboard_report[0], sequence->event_release.event.keyboard)){
                 #if DEBUG_LOG
                 ESP_LOGI(pcTaskGetName(NULL), "posthook(): Starting keyboard release macro: %s", sequence->timer_args.name);
                 #endif
-                esp_timer_start_once(sequence->timer, sequence->list[sequence->pos].duration);
+                reset_sequence(sequence);
+                start_sequence(sequence);
+            }
+            // If a recording sequence
+            if (sequence->save_press.header == HEADER_HID_KEYBOARD && sequence->is_recording){
+                #if DEBUG_LOG
+                ESP_LOGI(pcTaskGetName(NULL), "posthook(): Recording keyboard event");
+                #endif
+                add_keyboard_record(sequence, *report);
+            }
+            // If a save press key is defined for sequence
+            if (sequence->save_press.header == HEADER_HID_KEYBOARD && keyboard_report_contains_event(last_keyboard_report[0], sequence->save_press.event.keyboard)){
+                #if DEBUG_LOG
+                ESP_LOGI(pcTaskGetName(NULL), "posthook(): Starting keyboard save macro: %s", sequence->timer_args.name);
+                #endif
+                reset_sequence(sequence);
+                sequence->is_recording = true;
             }
         }
     // Case n°2: Mouse HID
@@ -106,7 +123,8 @@ void macro_posthook_transmission(hid_transmit_t* report){
                 #if DEBUG_LOG
                 ESP_LOGI(pcTaskGetName(NULL), "posthook(): Starting mouse press macro: %s", sequence->timer_args.name);
                 #endif
-                esp_timer_start_once(sequence->timer, sequence->list[sequence->pos].duration);
+                reset_sequence(sequence);
+                start_sequence(sequence);
             }
         }
     }
@@ -158,8 +176,7 @@ void macro_sequence_callback(void* arg) {
     key_seq->pos++;
     // if end of sequence, reset
     if (key_seq->pos >= key_seq->size){
-        key_seq->pos = 0;
-        key_seq->previous_key.header = 0;
+        reset_sequence(key_seq);
         if (key_seq->loop){
             // Ignore end of sequence, try to continue
         } else {
@@ -173,10 +190,9 @@ void macro_sequence_callback(void* arg) {
          (key_seq->event_press.header == HEADER_HID_MOUSE && !mouse_report_contains_event(last_mouse_report, key_seq->event_press.event.mouse))
         )
        ){
-        key_seq->pos = 0;
-        key_seq->previous_key.header = 0;
+        reset_sequence(key_seq);
         return;
     }  
-    esp_timer_start_once(key_seq->timer, key_seq->list[key_seq->pos].duration);
+    start_sequence(key_seq);
     return;
 }

@@ -16,8 +16,8 @@
 #include "macpass_spi.h"
 #include "macpass_hid.h"
 #include "macpass_usb.h"
-#include "macpass_tool.h"
 #include "macpass_macro.h"
+#include "macpass_tool.h"
 
 // Define title for logging: for UART debug purposes
 #define LOG_TITLE "MacroPassthrough"
@@ -182,6 +182,11 @@ static const group_sequence_t macro_sequence = {
             },
             .size = 27,
             .event_press = ONE_MOUSE_KEY(MOUSE_BUTTON_RIGHT),
+        },
+        {
+            .size = 1,
+            .save_press = ONE_KEYBOARD_KEY(HID_KEY_KEYPAD_SUBTRACT),
+            .event_press = ONE_KEYBOARD_KEY(HID_KEY_KEYPAD_ADD),
         },
     }
 };

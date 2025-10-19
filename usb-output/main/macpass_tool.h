@@ -161,3 +161,42 @@ static inline void set_mouse_movement_to_report(hid_mouse_report_t* dst, const h
     dst->y = src.y;
     dst->wheel = src.wheel;
 }
+
+static inline void reset_sequence(key_modification_sequence_t* sequence){
+    esp_timer_stop(sequence->timer);
+    sequence->pos = 0;
+    sequence->previous_key.header = 0;
+    sequence->started_time = esp_timer_get_time();
+    sequence->waited_sum = 0;
+    sequence->is_recording = false;
+}
+
+static inline void start_sequence(key_modification_sequence_t* sequence){
+    // Compute next time target for next key sequence.
+    int64_t now = esp_timer_get_time();
+    int64_t target = sequence->started_time + sequence->waited_sum + sequence->list[sequence->pos].duration;
+    // Add waiting time to sum history.
+    sequence->waited_sum += sequence->list[sequence->pos].duration;
+    // Verify that the target has not been missed.
+    if (target > now) {
+        esp_timer_start_once(sequence->timer, target - now);
+    } else {
+        // wait 1ms to not overload.
+        ESP_LOGI(pcTaskGetName(NULL), "Macro: behind schedule => wait 1ms more", tud_ready());
+        esp_timer_start_once(sequence->timer, 1000);
+    }
+}
+
+static inline void add_keyboard_record(key_modification_sequence_t* sequence, const hid_transmit_t report){
+    if (sequence->pos >= MAX_KEY_MODIFICATION_EVENT) return;
+    // Compute next time target for next key sequence.
+    int64_t now = esp_timer_get_time();
+    int64_t duration = now - sequence->started_time - sequence->waited_sum;
+    // Update wait time
+    sequence->waited_sum += duration;
+    // Set the new record
+    sequence->list[sequence->pos].duration = duration;
+    sequence->list[sequence->pos].event = report;
+    sequence->pos++;
+    sequence->size = sequence->pos;
+}

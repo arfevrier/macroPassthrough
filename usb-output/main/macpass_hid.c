@@ -41,7 +41,6 @@ void hid_task_multiplexer(void *pvParameters) {
       } else if (queue_received.header == HEADER_HID_MOUSE) {
         print_mouse_report(pcTaskGetName(NULL), queue_received.event.mouse);
       }
-      ESP_LOGI(pcTaskGetName(NULL), "tud status: %d", tud_ready());
       #endif
       
       // But USB peripheral must still be ready. If the USB device is disconnected, tud_ready() will return false.

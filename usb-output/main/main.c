@@ -3,6 +3,7 @@
 
 void app_main(void)
 {
+    vTaskDelay(pdMS_TO_TICKS(1000)); // At sleep in case of computer boot
     ESP_LOGI(LOG_TITLE, "Starting -MacroPassthrough- application");
 
     // Initialize SPI
@@ -16,7 +17,6 @@ void app_main(void)
     macro_init();
 
     // Initialize TinyUSB
-    vTaskDelay(pdMS_TO_TICKS(1000)); // At sleep in case of computer boot
     tud_user_initialization();
 
     // Leave main() in background
