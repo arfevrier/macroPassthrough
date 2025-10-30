@@ -291,6 +291,55 @@ void macro_posthook_transmission(hid_transmit_t* report){
 
 To add your own logic, simply edit the code between the `// --- START USER CUSTOM MACRO` and `// --- END` comments in the respective functions.
 
+### Developper flow
+
+Here is a sequence diagram showing all the functions that process an HID report, from receipt by a device to the return of an LED report by the PC.
+This helps to understand a little better how a HID report is processed. Here, a keyboard is used as an example, but it works the same way for a mouse.
+
+```mermaid
+sequenceDiagram
+    participant KBD as USB Keyboard
+    participant USBIN as ESP32-S3 USB-input
+    participant SPI as SPI Bus
+    participant USBOUT as ESP32-S3 USB-output
+    participant PC as PC
+
+    KBD->>USBIN: 1. CapsLock pressed (HID report)
+    USBIN->>USBIN: 2. hid_host_interface_callback()
+    USBIN->>SPI: 3. Send HID report: spi_send_master_hid_sender()
+
+    SPI->>USBOUT: Receive HID report: spi_task_slave_hid_receiver()
+    USBOUT->>+USBOUT: 4.1. macro_prehook_transmission()
+    USBOUT->>USBOUT: 4.2. Add to multiplexer queue: hid_add_report()
+    USBOUT->>-USBOUT: 4.3. macro_posthook_transmission()
+    USBOUT->>+USBOUT: 5. hid_task_multiplexer(): calls tud_hid_keyboard_report()
+    USBOUT->>PC: 6. Send HID report to PC (CapsLock)
+    PC->>USBOUT: 7. PC sends LED report, tud_hid_set_report_cb()
+    USBOUT->>-SPI: Send LED report: spi_send_master_pc_sender()
+    SPI->>USBIN: Receive LED report: spi_task_slave_pc_receiver()
+    USBIN->>USBIN: 10. hid_host_keyboard_report_output()
+    USBIN->>USBIN: 11. hid_class_request_set_report()
+    USBIN->>KBD: 12. LED update
+```
+
+Here the one for hardware interrupts that manage user-defined macros:
+
+```mermaid
+sequenceDiagram
+    participant USBOUT as ESP32-S3 USB-output
+    participant TIMER as ESP-Timer Interuption
+    participant PC as PC
+
+    USBOUT->>USBOUT: 1. macro_posthook_transmission()
+    USBOUT->>TIMER: 2. Configure timer (macro_sequence_callback)
+    
+    loop For each sequence
+        TIMER->>USBOUT: x.1. Macro engine adds macro HID report(s) to queue hid_add_report()
+        USBOUT->>PC: x.2. hid_task_multiplexer(): calls tud_hid_keyboard_report()
+        TIMER->>TIMER: x.3. Configure timer for next sequence macro_sequence_callback()
+    end
+```
+
 ---
 
 ## Benchmarks
